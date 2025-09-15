@@ -1,0 +1,59 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <!--
+    Macro: robotiq_ft_sensor_core
+    Creates two links: ${prefix}_base_link (robot side) and ${prefix}_tool_link (tool side)
+    and a fixed joint between them carrying a force_torque sensor.
+  -->
+  <xacro:macro name="robotiq_ft_sensor_core" params="
+      parent:=world
+      prefix:=ft300
+      update_rate:=250
+      xyz:='0 0 0' rpy:='0 0 0'">
+
+    <!-- Robot-side mount: parent -> ${prefix}_base_link -->
+    <link name="${prefix}_base_link">
+      <!-- keep inertial tiny but nonzero to avoid warnings -->
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="0.001"/>
+        <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6"/>
+      </inertial>
+    </link>
+
+    <joint name="${prefix}_mount" type="fixed">
+      <parent link="${parent}"/>
+      <child  link="${prefix}_base_link"/>
+      <!-- Position/orient the FT sensor **as an assembly** on the robot flange -->
+      <origin xyz="${xyz}" rpy="${rpy}"/>
+    </joint>
+
+    <!-- Tool-side link (TCP side) -->
+    <link name="${prefix}_tool_link">
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="0.001"/>
+        <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6"/>
+      </inertial>
+    </link>
+
+    <!-- ****************  THE SENSOR LIVES ON THIS JOINT  **************** -->
+    <joint name="${prefix}_base_to_tool" type="fixed">
+      <parent link="${prefix}_base_link"/>
+      <child  link="${prefix}_tool_link"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+
+      <!-- 6-axis Force/Torque sensor (Isaac URDF importer reads this) -->
+      <sensor name="${prefix}_wrench" type="force_torque">
+        <update_rate>${update_rate}</update_rate>
+        <force_torque>
+          <!-- Express wrench in the CHILD frame = tool side -->
+          <frame>child</frame>
+          <!-- Wrench measured as force/torque of child acting on parent -->
+          <measure_direction>child_to_parent</measure_direction>
+        </force_torque>
+      </sensor>
+    </joint>
+
+  </xacro:macro>
+</robot>
